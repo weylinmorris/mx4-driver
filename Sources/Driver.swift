@@ -34,6 +34,7 @@ final class Driver {
         var dx = 0
         var dy = 0
         var gestureFired = false
+        var skipNextMove = false
         var panelPresses = 0 // identifies the current Sense Panel press for the hold timer
         var panelHoldFired = false
 
@@ -202,6 +203,7 @@ final class Driver {
             mouse.dx = 0
             mouse.dy = 0
             mouse.gestureFired = false
+            mouse.skipNextMove = true
             if !config.hasDirectionalGestures { run(config.gestureClick, "gesture click") }
         }
         if up.contains(CID.gestureButton) && config.verbose { log("gesture released: travel dx=\(mouse.dx) dy=\(mouse.dy)") }
@@ -230,6 +232,12 @@ final class Driver {
 
     private func gestureMoved(_ mouse: Mouse, dx: Int, dy: Int) {
         guard mouse.pressed.contains(CID.gestureButton), !mouse.gestureFired else { return }
+        // The first raw XY report after a press holds a large value that isn't movement while
+        // held (it follows pointer movement between presses), so drop it.
+        if mouse.skipNextMove {
+            mouse.skipNextMove = false
+            return
+        }
         mouse.dx += dx
         mouse.dy += dy
         let threshold = config.gestureThreshold
